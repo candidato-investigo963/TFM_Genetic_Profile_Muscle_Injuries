@@ -2,8 +2,6 @@
 # SCRIPT TFM : Análisis Curvas ROC y Regresión Logística
 ###############################################################################
 
-# AUTOR: Pablo Rafael Pombero Hurtado
-
 # TFM: Perfil genético de rendimiento muscular y su relación con la incidencia 
 # y gravedad de lesiones musculoesqueléticas en futbolistas no profesionales
 
@@ -228,6 +226,7 @@ cat("===== HOMBRES =====\n")
 cat("OR:", OR_h, "| IC 95%:", IC_h[1], "-", IC_h[2], "| p =", pval_h, "\n\n")
 cat("===== MUJERES =====\n")
 cat("OR:", OR_m, "| IC 95%:", IC_m[1], "-", IC_m[2], "| p =", pval_m, "\n")
+
 
 
 
