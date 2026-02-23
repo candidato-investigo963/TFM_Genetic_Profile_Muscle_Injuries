@@ -1,14 +1,16 @@
 ###############################################################################
-# SCRIPT TFM : Análisis Curvas ROC y Regresión Logística
+# TFM SCRIPT: ROC Curve Analysis and Logistic Regression
 ###############################################################################
 
-# TFM: Perfil genético de rendimiento muscular y su relación con la incidencia 
-# y gravedad de lesiones musculoesqueléticas en futbolistas no profesionales
+# Author: Pablo Rafael Pombero Hurtado
 
-# AVISO: Este script se ha utilizado con la variable binaria FIBRASmusc, 
-# pero puede usarse también con cualquier otra variable binaria.
+# TFM: Genetic profile of muscle performance and its relationship with the incidence
+# and severity of musculoskeletal injuries in non-professional football players
 
-### Librerías utilizadas 
+# NOTE: This script has been used with the binary variable FIBRASmusc,
+# but it can also be applied to any other binary variable.
+
+### Libraries used
 
 library(dplyr)
 library(readxl)
@@ -19,16 +21,15 @@ library(ggplot2)
 library(tidyr)
 
 
-### Cálculo del promedio del TGS
+### Calculation of the TGS mean
 
+# Read dataset
+datos <- read_excel("data/Lesiones_Genetica.xlsx")
 
-# Leer base de datos
-datos <- read_excel("C:/Users/Win10/OneDrive/Escritorio/MASTER/PRACTICAS/Lesiones_Genética.xlsx")
-
-# Eliminar datos ausentes (NA)
+# Remove missing data (NA)
 datos_limpios <- datos %>% filter(!is.na(`TGS rendimiento`) & !is.na(FIBRASmusc))
 
-# Agrupar por la variable de estudio y calcular media y desviación estándar del TGS
+# Group by study variable and calculate mean and standard deviation of TGS
 resumen <- datos_limpios %>%
   group_by(FIBRASmusc) %>%
   summarise(
@@ -37,10 +38,10 @@ resumen <- datos_limpios %>%
   ) %>%
   mutate(Grupo = ifelse(FIBRASmusc == 0, "No lesionados", "Lesionados"))
 
-# Distribución del TGS según los estados de la variable binaria
+# Distribution of TGS according to the binary variable
 tapply(datos$`TGS rendimiento`, datos$FIBRASmusc, mean, na.rm = TRUE)
 
-# Gráfico de barras
+# Bar plot
 ggplot(resumen, aes(x = Grupo, y = media_TGS, fill = Grupo)) +
   geom_bar(stat = "identity", width = 0.6, color = "black") +
   geom_errorbar(aes(ymin = media_TGS - sd_TGS, ymax = media_TGS + sd_TGS),
@@ -55,26 +56,24 @@ ggplot(resumen, aes(x = Grupo, y = media_TGS, fill = Grupo)) +
   theme(legend.position = "none")
 
 
-# Aplicar t-student para ver diferencias significativas en las medias
+# Apply t-test to check for significant differences in means
 t.test(`TGS rendimiento` ~ FIBRASmusc , data = datos)
 
 
 
+### Analysis using ROC CURVES
 
-### Análisis mediante CURVA ROC
-
-
-# Filtrar solo no profesionales
+# Filter only non-professionals
 datos <- subset(datos, Profesional == 0)
 
-# Eliminar datos ausentes (NA)
+# Remove missing data (NA)
 datos <- na.omit(datos[, c("SEXO", "TGS rendimiento", "FIBRASmusc")])
 
-# Filtrar por sexo
+# Filter by sex
 hombres <- subset(datos, SEXO == 0)
 mujeres <- subset(datos, SEXO == 1)
 
-# ===== HOMBRES ROC =====
+# ===== ROC FOR MEN =====
 roc_h <- roc(hombres$FIBRASmusc, hombres$`TGS rendimiento`, ci = TRUE)
 auc_h <- as.numeric(auc(roc_h))
 ci_h <- ci.auc(roc_h)
@@ -90,7 +89,7 @@ thresh_h <- round(as.numeric(coords_h["threshold"]), 2)
 spec_h <- as.numeric(coords_h["specificity"])
 sens_h <- as.numeric(coords_h["sensitivity"])
 
-# ===== MUJERES ROC =====
+# ===== ROC FOR WOMEN =====
 roc_m <- roc(mujeres$FIBRASmusc, mujeres$`TGS rendimiento`, ci = TRUE)
 auc_m <- as.numeric(auc(roc_m))
 ci_m <- ci.auc(roc_m)
@@ -107,8 +106,7 @@ spec_m <- as.numeric(coords_m["specificity"])
 sens_m <- as.numeric(coords_m["sensitivity"])
 
 
-
-# ===== GRÁFICO ROC HOMBRES =====
+# ===== ROC PLOT FOR MEN =====
 roc_df_h <- data.frame(
   fpr = as.numeric(1 - roc_h$specificities),
   tpr = as.numeric(roc_h$sensitivities)
@@ -118,7 +116,7 @@ ggplot(roc_df_h, aes(x = fpr, y = tpr)) +
   geom_line(color = "red", size = 1.3) +
   geom_abline(slope = 1, intercept = 0, color = "black", size = 1.1) +
   labs(
-    title = "Curva ROC – TGS rendimiento y lesión muscular (hombres)",
+    title = "ROC Curve – TGS Performance and Muscle Injury (Men)",
     x = "False Positive Rate (1 - Specificity)",
     y = "True Positive Rate (Sensitivity)"
   ) +
@@ -142,16 +140,16 @@ ggplot(roc_df_h, aes(x = fpr, y = tpr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   annotate("point", x = 1 - spec_h, y = sens_h, color = "red", size = 3) +
   annotate("text", x = 1 - spec_h + 0.05, y = sens_h, 
-           label = paste0("Umbral: ", thresh_h), hjust = 0, size = 5, color = "red") +
-  labs(title = "Curva ROC - Masculino",
+           label = paste0("Threshold: ", thresh_h), hjust = 0, size = 5, color = "red") +
+  labs(title = "ROC Curve - Male",
        subtitle = paste0("AUC = ", round(auc_h, 3), 
-                         " | IC 95%: ", round(ci_h[1], 3), "-", round(ci_h[3], 3),
+                         " | 95% CI: ", round(ci_h[1], 3), "-", round(ci_h[3], 3),
                          " | p = ", p_h),
-       x = "1 - Especificidad", y = "Sensibilidad") +
+       x = "1 - Specificity", y = "Sensitivity") +
   theme_minimal(base_size = 14)
 
 
-# ===== GRÁFICO ROC MUJERES =====
+# ===== ROC PLOT FOR WOMEN =====
 roc_df_m <- data.frame(
   fpr = as.numeric(1 - roc_m$specificities),
   tpr = as.numeric(roc_m$sensitivities)
@@ -161,7 +159,7 @@ ggplot(roc_df_m, aes(x = fpr, y = tpr)) +
   geom_line(color = "red", size = 1.3) +
   geom_abline(slope = 1, intercept = 0, color = "black", size = 1.1) +
   labs(
-    title = "Curva ROC – TGS rendimiento y lesión muscular (mujeres)",
+    title = "ROC Curve – TGS Performance and Muscle Injury (Women)",
     x = "False Positive Rate (1 - Specificity)",
     y = "True Positive Rate (Sensitivity)"
   ) +
@@ -185,34 +183,33 @@ ggplot(roc_df_m, aes(x = fpr, y = tpr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   annotate("point", x = 1 - spec_m, y = sens_m, color = "red", size = 3) +
   annotate("text", x = 1 - spec_m + 0.05, y = sens_m, 
-           label = paste0("Umbral: ", thresh_m), hjust = 0, size = 5, color = "red") +
-  labs(title = "Curva ROC - Femenino",
+           label = paste0("Threshold: ", thresh_m), hjust = 0, size = 5, color = "red") +
+  labs(title = "ROC Curve - Female",
        subtitle = paste0("AUC = ", round(auc_m, 3), 
-                         " | IC 95%: ", round(ci_m[1], 3), "-", round(ci_m[3], 3),
+                         " | 95% CI: ", round(ci_m[1], 3), "-", round(ci_m[3], 3),
                          " | p = ", p_m),
-       x = "1 - Especificidad", y = "Sensibilidad") +
+       x = "1 - Specificity", y = "Sensitivity") +
   theme_minimal(base_size = 14)
 
 
+### Binary logistic regression
 
-### Regresion logística binaria
-
-# Filtrar solo no profesionales
+# Filter only non-professionals
 datos <- subset(datos, Profesional == 0)
 
-# Eliminar datos ausentes (NA)
+# Remove missing data (NA)
 datos <- na.omit(datos[, c("SEXO", "TGS rendimiento", "FIBRASmusc")])
 
 
-# ===== HOMBRES =====
+# ===== MEN =====
 hombres <- subset(datos, SEXO == 0 )
-hombres$grupo <- ifelse(hombres$`TGS rendimiento` > 66.23, 1, 0) # Usar el umbral de corte obtenido en la curva ROC
+hombres$grupo <- ifelse(hombres$`TGS rendimiento` > 66.23, 1, 0) # Use the cutoff threshold obtained from the ROC curve
 modelo_h <- glm(FIBRASmusc ~ grupo, data = hombres, family = binomial)
 OR_h <- round(exp(coef(modelo_h)[2]), 3)
 IC_h <- round(exp(confint(modelo_h)[2, ]), 3)
 pval_h <- round(summary(modelo_h)$coefficients[2, 4], 4)
 
-# ===== MUJERES =====
+# ===== WOMEN =====
 mujeres <- subset(datos, SEXO == 1)
 mujeres$grupo <- ifelse(mujeres$`TGS rendimiento` > 66.23, 1, 0)
 modelo_m <- glm(FIBRASmusc ~ grupo, data = mujeres, family = binomial)
@@ -221,11 +218,11 @@ IC_m <- round(exp(confint(modelo_m)[2, ]), 3)
 pval_m <- round(summary(modelo_m)$coefficients[2, 4], 4)
 
 
-# Resultados
-cat("===== HOMBRES =====\n")
-cat("OR:", OR_h, "| IC 95%:", IC_h[1], "-", IC_h[2], "| p =", pval_h, "\n\n")
-cat("===== MUJERES =====\n")
-cat("OR:", OR_m, "| IC 95%:", IC_m[1], "-", IC_m[2], "| p =", pval_m, "\n")
+# Results
+cat("===== MEN =====\n")
+cat("OR:", OR_h, "| 95% CI:", IC_h[1], "-", IC_h[2], "| p =", pval_h, "\n\n")
+cat("===== WOMEN =====\n")
+cat("OR:", OR_m, "| 95% CI:", IC_m[1], "-", IC_m[2], "| p =", pval_m, "\n")
 
 
 
