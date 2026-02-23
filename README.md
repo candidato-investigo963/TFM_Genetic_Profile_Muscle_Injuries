@@ -14,3 +14,4 @@ This repository contains the R script used for statistical analysis in my TFM, w
 ## File
 
 - `SCRIPT TFM.R`: Main script used in the study.
+- `Lesiones_Genetica.xlsx`: Dataset used for analysis
